@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor Gráfico Personalizado</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f2f2f2;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        .editor-container {
+            background-color: #fff;
+            border: 2px solid #ccc;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+            position: relative;
+            width: 800px; /* Largura aumentada */
+            height: 600px; /* Altura aumentada */
+        }
+
+        .toolbar {
+            background-color: #f2f2f2;
+            padding: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+        }
+
+        .toolbar button {
+            padding: 8px 15px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .toolbar button:hover {
+            background-color: #0056b3;
+        }
+
+        .toolbar input[type="color"] {
+            margin-right: 10px;
+        }
+
+        .toolbar input[type="range"] {
+            width: 100px;
+            margin-right: 10px;
+        }
+
+        .toolbar a {
+            padding: 8px 15px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 5px;
+            background-color: #007bff;
+            color: #fff;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: bold;
+            transition: background-color 0.3s;
+        }
+
+        .toolbar a:hover {
+            background-color: #0056b3;
+        }
+
+        .canvas {
+            width: 100%;
+            height: calc(100% - 40px);
+            cursor: crosshair;
+        }
+    </style>
+</head>
+<body>
+    <div class="editor-container">
+        <canvas class="canvas" id="canvas"></canvas>
+        <div class="toolbar">
+            <button id="pencilButton">Lápis</button>
+            <button id="eraserButton">Borracha</button>
+            <input type="color" id="colorPicker" value="#000000">
+            <input type="range" id="lineWidthPicker" min="1" max="20" value="5">
+            <button id="fillButton">Preencher</button>
+            <button id="clearButton">Limpar</button>
+            <a id="downloadButton" download="drawing.png" href="#">Baixar Imagem</a>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const canvas = document.getElementById('canvas');
+            const ctx = canvas.getContext('2d');
+            const pencilButton = document.getElementById('pencilButton');
+            const eraserButton = document.getElementById('eraserButton');
+            const colorPicker = document.getElementById('colorPicker');
+            const lineWidthPicker = document.getElementById('lineWidthPicker');
+            const fillButton = document.getElementById('fillButton');
+            const clearButton = document.getElementById('clearButton');
+            const downloadButton = document.getElementById('downloadButton');
+
+            let drawingTool = 'pencil';
+            let painting = false;
+            let prevX = 0;
+            let prevY = 0;
+
+            canvas.width = 800; /* Largura aumentada */
+            canvas.height = 600; /* Altura aumentada */
+
+            function startPosition(e) {
+                painting = true;
+                draw(e);
+            }
+
+            function endPosition() {
+                painting = false;
+                ctx.beginPath();
+            }
+
+            function draw(e) {
+                if (!painting) return;
+                ctx.lineCap = 'round';
+
+                if (drawingTool === 'pencil') {
+                    ctx.strokeStyle = colorPicker.value;
+                    ctx.lineWidth = lineWidthPicker.value;
+                } else if (drawingTool === 'eraser') {
+                    ctx.strokeStyle = '#fff'; // White color to simulate erasing
+                    ctx.lineWidth = lineWidthPicker.value * 2;
+                }
+
+                const x = e.touches ? e.touches[0].clientX - canvas.getBoundingClientRect().left : e.offsetX;
+                const y = e.touches ? e.touches[0].clientY - canvas.getBoundingClientRect().top : e.offsetY;
+
+                ctx.lineTo(x, y);
+                ctx.stroke();
+            }
+
+            pencilButton.addEventListener('click', () => {
+                drawingTool = 'pencil';
+            });
+
+            eraserButton.addEventListener('click', () => {
+                drawingTool = 'eraser';
+            });
+
+            canvas.addEventListener('touchstart', (e) => {
+                startPosition(e);
+                ctx.beginPath();
+                const x = e.touches ? e.touches[0].clientX - canvas.getBoundingClientRect().left : e.offsetX;
+                const y = e.touches ? e.touches[0].clientY - canvas.getBoundingClientRect().top : e.offsetY;
+                ctx.moveTo(x, y);
+            });
+
+            canvas.addEventListener('mousedown', (e) => {
+                startPosition(e);
+                ctx.beginPath();
+                const x = e.touches ? e.touches[0].clientX - canvas.getBoundingClientRect().left : e.offsetX;
+                const y = e.touches ? e.touches[0].clientY - canvas.getBoundingClientRect().top : e.offsetY;
+                ctx.moveTo(x, y);
+            });
+
+            canvas.addEventListener('touchend', endPosition);
+            canvas.addEventListener('mouseup', endPosition);
+            canvas.addEventListener('touchmove', draw);
+            canvas.addEventListener('mousemove', draw);
+
+            fillButton.addEventListener('click', () => {
+                ctx.fillStyle = colorPicker.value;
+                ctx.fillRect(0, 0, canvas.width, canvas.height);
+            });
+
+            clearButton.addEventListener('click', () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            });
+
+            downloadButton.addEventListener('click', () => {
+                const dataURL = canvas.toDataURL('image/png');
+                downloadButton.href = dataURL;
+            });
+        });
+    </script>
+</body>
+</html>
